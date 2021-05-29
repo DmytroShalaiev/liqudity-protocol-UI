@@ -146,6 +146,7 @@ const BalanceText = styled(Text)`
 
 const activeClassName = 'ACTIVE'
 
+
 const StyledNavLink = styled(NavLink).attrs({
   activeClassName
 })`
