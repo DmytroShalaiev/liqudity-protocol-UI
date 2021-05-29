@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React from 'react'
 import { AutoColumn } from '../../components/Column'
 import styled from 'styled-components'
 import { Link } from 'react-router-dom'
@@ -7,28 +7,22 @@ import { JSBI, TokenAmount, ETHER } from '@uniswap/sdk'
 import { RouteComponentProps } from 'react-router-dom'
 import DoubleCurrencyLogo from '../../components/DoubleLogo'
 import { useCurrency } from '../../hooks/Tokens'
-import { useWalletModalToggle } from '../../state/application/hooks'
 import { TYPE } from '../../theme'
 
 import { RowBetween } from '../../components/Row'
 import { CardSection, DataCard, CardNoise, CardBGImage } from '../../components/earn/styled'
-import { ButtonPrimary, ButtonEmpty } from '../../components/Button'
-import StakingModal from '../../components/earn/StakingModal'
+import { ButtonPrimary } from '../../components/Button'
 import { useStakingInfo } from '../../state/stake/hooks'
-import UnstakingModal from '../../components/earn/UnstakingModal'
-import ClaimRewardModal from '../../components/earn/ClaimRewardModal'
 import { useTokenBalance } from '../../state/wallet/hooks'
 import { useActiveWeb3React } from '../../hooks'
 import { useColor } from '../../hooks/useColor'
-import { CountUp } from 'use-count-up'
 
 import { wrappedCurrency } from '../../utils/wrappedCurrency'
 import { currencyId } from '../../utils/currencyId'
 import { useTotalSupply } from '../../data/TotalSupply'
 import { usePair } from '../../data/Reserves'
-import usePrevious from '../../hooks/usePrevious'
 import useUSDCPrice from '../../utils/useUSDCPrice'
-import { BIG_INT_ZERO, BIG_INT_SECONDS_IN_WEEK } from '../../constants'
+import { BIG_INT_SECONDS_IN_WEEK } from '../../constants'
 
 const PageWrapper = styled(AutoColumn)`
   max-width: 640px;
@@ -54,15 +48,6 @@ const StyledDataCard = styled(DataCard)<{ bgColor?: any; showBackground?: any }>
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   background: ${({ theme, bgColor, showBackground }) =>
     `radial-gradient(91.85% 100% at 1.84% 0%, ${bgColor} 0%,  ${showBackground ? theme.black : theme.bg5} 100%) `};
-`
-
-const StyledBottomCard = styled(DataCard)<{ dim: any }>`
-  background: ${({ theme }) => theme.bg3};
-  opacity: ${({ dim }) => (dim ? 0.4 : 1)};
-  margin-top: -40px;
-  padding: 0 1.25rem 1rem 1.25rem;
-  padding-top: 32px;
-  z-index: 1;
 `
 
 const PoolData = styled(DataCard)`
@@ -106,11 +91,6 @@ export default function Manage({
   const userLiquidityUnstaked = useTokenBalance(account ?? undefined, stakingInfo?.stakedAmount?.token)
   const showAddLiquidityButton = Boolean(stakingInfo?.stakedAmount?.equalTo('0') && userLiquidityUnstaked?.equalTo('0'))
 
-  // toggle for staking modal and unstaking modal
-  const [showStakingModal, setShowStakingModal] = useState(false)
-  const [showUnstakingModal, setShowUnstakingModal] = useState(false)
-  const [showClaimRewardModal, setShowClaimRewardModal] = useState(false)
-
   // fade cards if nothing staked or nothing earned yet
   const disableTop = !stakingInfo?.stakedAmount || stakingInfo.stakedAmount.equalTo(JSBI.BigInt(0))
 
@@ -135,23 +115,11 @@ export default function Manage({
     )
   }
 
-  const countUpAmount = stakingInfo?.earnedAmount?.toFixed(6) ?? '0'
-  const countUpAmountPrevious = usePrevious(countUpAmount) ?? '0'
 
   // get the USD value of staked WETH
   const USDPrice = useUSDCPrice(WETH)
   const valueOfTotalStakedAmountInUSDC =
     valueOfTotalStakedAmountInWETH && USDPrice?.quote(valueOfTotalStakedAmountInWETH)
-
-  const toggleWalletModal = useWalletModalToggle()
-
-  const handleDepositClick = useCallback(() => {
-    if (account) {
-      setShowStakingModal(true)
-    } else {
-      toggleWalletModal()
-    }
-  }, [account, toggleWalletModal])
 
   return (
     <PageWrapper gap="lg" justify="center">
@@ -217,28 +185,6 @@ export default function Manage({
           <CardNoise />
         </VoteCard>
       )}
-
-      {stakingInfo && (
-        <>
-          <StakingModal
-            isOpen={showStakingModal}
-            onDismiss={() => setShowStakingModal(false)}
-            stakingInfo={stakingInfo}
-            userLiquidityUnstaked={userLiquidityUnstaked}
-          />
-          <UnstakingModal
-            isOpen={showUnstakingModal}
-            onDismiss={() => setShowUnstakingModal(false)}
-            stakingInfo={stakingInfo}
-          />
-          <ClaimRewardModal
-            isOpen={showClaimRewardModal}
-            onDismiss={() => setShowClaimRewardModal(false)}
-            stakingInfo={stakingInfo}
-          />
-        </>
-      )}
-
       <PositionInfo gap="lg" justify="center" dim={showAddLiquidityButton}>
         <BottomSection gap="lg" justify="center">
           <StyledDataCard disabled={disableTop} bgColor={backgroundColor} showBackground={!showAddLiquidityButton}>
@@ -260,77 +206,15 @@ export default function Manage({
               </AutoColumn>
             </CardSection>
           </StyledDataCard>
-          <StyledBottomCard dim={stakingInfo?.stakedAmount?.equalTo(JSBI.BigInt(0))}>
-            <CardBGImage desaturate />
-            <CardNoise />
-            <AutoColumn gap="sm">
-              <RowBetween>
-                <div>
-                  <TYPE.black>Your unclaimed UNI</TYPE.black>
-                </div>
-                {stakingInfo?.earnedAmount && JSBI.notEqual(BIG_INT_ZERO, stakingInfo?.earnedAmount?.raw) && (
-                  <ButtonEmpty
-                    padding="8px"
-                    borderRadius="8px"
-                    width="fit-content"
-                    onClick={() => setShowClaimRewardModal(true)}
-                  >
-                    Claim
-                  </ButtonEmpty>
-                )}
-              </RowBetween>
-              <RowBetween style={{ alignItems: 'baseline' }}>
-                <TYPE.largeHeader fontSize={36} fontWeight={600}>
-                  <CountUp
-                    key={countUpAmount}
-                    isCounting
-                    decimalPlaces={4}
-                    start={parseFloat(countUpAmountPrevious)}
-                    end={parseFloat(countUpAmount)}
-                    thousandsSeparator={','}
-                    duration={1}
-                  />
-                </TYPE.largeHeader>
-                <TYPE.black fontSize={16} fontWeight={500}>
-                  <span role="img" aria-label="wizard-icon" style={{ marginRight: '8px ' }}>
-                    ⚡
-                  </span>
-                  {stakingInfo?.active
-                    ? stakingInfo?.rewardRate
-                        ?.multiply(BIG_INT_SECONDS_IN_WEEK)
-                        ?.toSignificant(4, { groupSeparator: ',' }) ?? '-'
-                    : '0'}
-                  {' UNI / week'}
-                </TYPE.black>
-              </RowBetween>
-            </AutoColumn>
-          </StyledBottomCard>
         </BottomSection>
         <TYPE.main style={{ textAlign: 'center' }} fontSize={14}>
-          <span role="img" aria-label="wizard-icon" style={{ marginRight: '8px' }}>
-            ⭐️
-          </span>
-          When you withdraw, the contract will automagically claim UNI on your behalf!
         </TYPE.main>
 
+        
         {!showAddLiquidityButton && (
           <DataRow style={{ marginBottom: '1rem' }}>
-            {stakingInfo && stakingInfo.active && (
-              <ButtonPrimary padding="8px" borderRadius="8px" width="160px" onClick={handleDepositClick}>
-                {stakingInfo?.stakedAmount?.greaterThan(JSBI.BigInt(0)) ? 'Deposit' : 'Deposit UNI-V2 LP Tokens'}
-              </ButtonPrimary>
-            )}
-
             {stakingInfo?.stakedAmount?.greaterThan(JSBI.BigInt(0)) && (
               <>
-                <ButtonPrimary
-                  padding="8px"
-                  borderRadius="8px"
-                  width="160px"
-                  onClick={() => setShowUnstakingModal(true)}
-                >
-                  Withdraw
-                </ButtonPrimary>
               </>
             )}
           </DataRow>
