@@ -19,7 +19,6 @@ import Row, { RowFixed } from '../Row'
 import Web3Status from '../Web3Status'
 
 import Modal from '../Modal'
-import UniBalanceContent from './UniBalanceContent'
 
 const HeaderFrame = styled.div`
   display: grid;
@@ -224,7 +223,6 @@ export default function Header() {
   return (
     <HeaderFrame>
       <Modal isOpen={showUniBalanceModal} onDismiss={() => setShowUniBalanceModal(false)}>
-        <UniBalanceContent setShowUniBalanceModal={setShowUniBalanceModal} />
       </Modal>
       <HeaderRow>
         <HeaderLinks>
