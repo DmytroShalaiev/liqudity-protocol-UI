@@ -67,7 +67,6 @@ const BottomSection = styled.div<{ showBackground: boolean }>`
   justify-content: space-between;
   z-index: 1;
 `
-
 export default function PoolCard({ stakingInfo }: { stakingInfo: StakingInfo }) {
   const token0 = stakingInfo.tokens[0]
   const token1 = stakingInfo.tokens[1]
